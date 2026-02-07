@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Love.exe</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;500&display=swap" rel="stylesheet">
+
+<style>
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:'JetBrains Mono', monospace;
+}
+
+body{
+    height:100vh;
+    background:linear-gradient(-45deg,#0f2027,#203a43,#2c5364);
+    background-size:400% 400%;
+    animation:gradient 10s ease infinite;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    color:#00ffcc;
+}
+
+@keyframes gradient{
+    0%{background-position:0% 50%}
+    50%{background-position:100% 50%}
+    100%{background-position:0% 50%}
+}
+
+.terminal,.letter{
+    background:rgba(0,0,0,.75);
+    padding:30px;
+    width:90%;
+    max-width:700px;
+    border-radius:12px;
+    box-shadow:0 0 30px rgba(0,255,204,.3);
+    min-height:400px;
+}
+
+.line{
+    margin-bottom:12px;
+    opacity:0;
+    animation:fadeIn .5s forwards;
+}
+
+@keyframes fadeIn{to{opacity:1}}
+
+.cursor::after{
+    content:"▌";
+    animation:blink 1s infinite;
+}
+
+@keyframes blink{
+    0%,50%,100%{opacity:1}
+    25%,75%{opacity:0}
+}
+
+.final{
+    margin-top:25px;
+    text-align:center;
+    font-size:1.1em;
+    color:#fff;
+}
+
+.heart{color:#ff5c8a}
+
+button{
+    margin-top:25px;
+    padding:12px 25px;
+    background:#ff5c8a;
+    border:none;
+    color:#fff;
+    border-radius:25px;
+    cursor:pointer;
+    font-size:1em;
+    transition:.3s;
+}
+
+button:hover{background:#ff7aa2}
+
+.letter{
+    display:none;
+    color:#fff;
+    line-height:1.7;
+}
+
+.letter h2{
+    text-align:center;
+    color:#ff5c8a;
+    margin-bottom:20px;
+}
+
+.print-btn{
+    background:#00ffcc;
+    color:#000;
+}
+</style>
+</head>
+
+<body>
+
+<div class="terminal" id="terminal"></div>
+
+<div class="letter" id="letter">
+    <h2>My Love 💖</h2>
+    <p>
+        From asking for welcome party photos to becoming the most important
+        person of my life — I never imagined this journey would be so beautiful.
+    </p>
+    <p>
+        We had misunderstandings, fights, and moments where everything felt
+        uncertain… but love always won.
+    </p>
+    <p>
+        Insha ALLAH, we will marry soon, and I promise to choose you —
+        every single day, in every version of life.
+    </p>
+    <p>
+        You are my safe place, my strength, my forever.
+    </p>
+    <p class="heart">
+        Happy Birthday my love ❤️  
+        I Love You — Always.
+    </p>
+
+    <center>
+        <button class="print-btn" onclick="window.print()">Print Love Letter 🖨️</button>
+    </center>
+</div>
+
+<script>
+const lines=[
+"Initializing Love.exe...",
+"Loading memories...",
+"",
+"✔ First meeting: We met near your class, I asked you for videos and pictures of the welcome party.",
+"✔ First fight: After our third meetup, you tried to end everything... but we're still together.",
+"✔ Insha ALLAH, we will marry soon.",
+"✔ Still in Love...",
+"",
+"System Message: Happy Birthday My Love 💖 You are mine forever."
+];
+
+const terminal=document.getElementById("terminal");
+let delay=0;
+
+lines.forEach((text,index)=>{
+    const div=document.createElement("div");
+    div.className="line cursor";
+    div.style.animationDelay=delay+"s";
+    div.innerHTML=text;
+    terminal.appendChild(div);
+    delay+=text===""?.5:1.2;
+
+    if(index===lines.length-1){
+        div.classList.add("final","heart");
+
+        setTimeout(()=>{
+            const btn=document.createElement("button");
+            btn.innerText="Next → Love Letter ❤️";
+            btn.onclick=showLetter;
+            terminal.appendChild(btn);
+        },(delay+1)*1000);
+    }
+});
+
+function showLetter(){
+    document.getElementById("terminal").style.display="none";
+    document.getElementById("letter").style.display="block";
+}
+</script>
+
+</body>
+</html>
