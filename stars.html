@@ -1,0 +1,585 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Night Sky — ALISHBA ♥ FAISAL (5000 stars, duplicated)</title>
+<style>
+  :root{
+    --bg1:#061226; --bg2:#071a33; --accent:#ff9bb3; --muted:#bfd8ee; --font-sans:Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Arial;
+  }
+  *{box-sizing:border-box} html,body{height:100%}
+  body{margin:0;font-family:var(--font-sans);background:
+    radial-gradient(800px 550px at 10% 15%, rgba(255,155,179,0.03), transparent),
+    radial-gradient(900px 600px at 90% 85%, rgba(173,216,230,0.02), transparent),
+    linear-gradient(180deg,var(--bg1),var(--bg2)); color:var(--muted); -webkit-font-smoothing:antialiased;overflow:hidden;}
+  .container{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:36px;gap:20px}
+  .card{width:100%;max-width:1200px;height:80vh;border-radius:16px;overflow:hidden;display:flex;background:linear-gradient(180deg, rgba(255,255,255,0.012), rgba(255,255,255,0.006));box-shadow:0 18px 60px rgba(3,8,20,0.6);border:1px solid rgba(255,255,255,0.02)}
+  .sky{position:relative;flex:1.6;padding:18px;display:flex;align-items:center;justify-content:center}
+  canvas#skyCanvas{width:100%;height:100%;display:block;border-radius:10px;background:transparent;touch-action:none}
+  .panel{flex:0.85;padding:22px;display:flex;flex-direction:column;gap:14px;border-left:1px solid rgba(255,255,255,0.02);background:linear-gradient(180deg, rgba(255,255,255,0.007), transparent)}
+  h1{margin:0;font-size:18px;color:var(--muted)} p.lead{margin:0;color:rgba(191,216,238,0.9);font-size:13px}
+  .controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap} .btn{padding:10px 14px;border-radius:10px;border:0;cursor:pointer;font-weight:700;background:linear-gradient(180deg, rgba(255,155,179,0.12), rgba(255,155,179,0.06));color:var(--accent)}
+  .btn.ghost{background:transparent;border:1px solid rgba(255,255,255,0.03);color:var(--muted)}
+  .caption{color:rgba(188,211,230,0.6);font-size:12px}
+  .preview{position:absolute;right:8px;top:8px;width:320px;max-width:35vw;transform:translateX(18px);background:linear-gradient(180deg, rgba(7,16,34,0.92), rgba(11,37,60,0.86));border-radius:12px;padding:14px;border:1px solid rgba(255,255,255,0.035);box-shadow:0 12px 40px rgba(2,8,20,0.6);opacity:0;pointer-events:none;transition:transform .28s cubic-bezier(.2,.9,.2,1), opacity .22s;color:var(--muted);z-index:60}
+  .preview.open{transform:translateX(0);opacity:1;pointer-events:auto}
+  .preview h2{margin:0 0 6px 0;font-size:16px;color:white}
+  .star-list{margin-top:8px;max-height:180px;overflow:auto;padding:8px;background:rgba(255,255,255,0.01);border-radius:8px;border:1px solid rgba(255,255,255,0.02)}
+  .star-item{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px;border-radius:8px;cursor:pointer}
+  .footer{margin-top:auto;font-size:12px;color:rgba(188,211,230,0.6)}
+  @media (max-width:940px){.card{flex-direction:column;height:86vh}.panel{border-left:0;border-top:1px solid rgba(255,255,255,0.02);flex:0.6}.preview{position:static;transform:none;opacity:1;pointer-events:auto;width:auto;max-width:100%}}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="card" role="main" aria-label="Animated night sky for Alishba">
+    <div class="sky" id="sky">
+      <canvas id="skyCanvas" aria-hidden="false"></canvas>
+
+      <div id="preview" class="preview" role="dialog" aria-hidden="true" aria-label="Star preview">
+        <h2 id="previewTitle">Star</h2>
+        <div class="meta" id="previewMeta">Coordinates • brightness</div>
+        <div class="small" id="previewText">Click a star to see its story.</div>
+        <div style="display:flex;gap:8px;margin-top:10px;">
+          <button class="btn" id="closePreview">Close</button>
+          <button class="btn ghost" id="highlightNeighbors">Highlight neighbors</button>
+        </div>
+      </div>
+
+    </div>
+
+    <aside class="panel">
+      <div>
+        <h1>Night Sky — For ALISHBA ♥ FAISAL</h1>
+        <p class="lead">Live simulator: wheel zoom, pinch zoom, drag pan. Click a star to open its preview.</p>
+      </div>
+
+      <div class="controls">
+        <button id="regen" class="btn">Regenerate Sky</button>
+        <button id="toggleLines" class="btn ghost">Toggle Lines</button>
+        <button id="toggleTwinkle" class="btn ghost">Toggle Twinkle</button>
+        <button id="toggleBgText" class="btn ghost">Toggle Background Text</button>
+      </div>
+
+      <div style="margin-top:6px">
+        <div class="caption">Quick customization (edit script near top):</div>
+        <ul style="margin:6px 0 0 18px;color:var(--muted);font-size:13px">
+          <li>CONSTELLATION_TEXT — change the phrase.</li><li>NUM_STARS — number of particles.</li><li>BASE_UNIQUE — unique base points to duplicate.</li>
+        </ul>
+      </div>
+
+      <div style="margin-top:6px">
+        <div class="caption">Accessible star list</div>
+        <div id="starList" class="star-list" role="list" aria-label="List of notable stars"></div>
+      </div>
+
+      <div class="footer">Tip: wheel to zoom (cursor-centered). Use two-finger pinch on mobile. Double-click to reset.</div>
+    </aside>
+  </div>
+</div>
+
+<script>
+/* ========== CONFIG ========== */
+// phrase rendered as mask (all stars stay inside this)
+let CONSTELLATION_TEXT = "ALISHBA";
+
+// number of star particles total
+const NUM_STARS = 3000;
+
+// number of unique base positions we sample once and then duplicate to reach NUM_STARS
+const BASE_UNIQUE = 1000;
+
+// small word-stars metadata (used for preview list)
+const WORD_STARS = [
+  { label: "Smile", text: "That morning when you laughed at my silly message."},
+  { label: "Kind", text: "Your kindness to strangers inspires me."},
+  { label: "Brave", text: "How you faced the tough days with courage."},
+  { label: "Warm", text: "The warmth of your hand in mine on cold nights."},
+  { label: "Clever", text: "Your clever solutions and gentle logic."},
+  { label: "Calm", text: "Your voice that calms my racing thoughts."},
+  { label: "Home", text: "With you, every place becomes home."},
+  { label: "Laughter", text: "Your laugh fills our evenings with sunlight."},
+  { label: "Promise", text: "A quiet vow I renew every morning."},
+  { label: "ALISHBA", text: "Her name written in stars — my favorite person."},
+  { label: "FAISAL", text: "From Faisal — always and forever."}
+];
+
+let DRAW_CONNECTIONS = true;
+let ENABLE_TWINKLE = true;
+let SHOW_BG_TEXT = false;
+
+/* ---------- DOM & Canvases ---------- */
+const canvas = document.getElementById('skyCanvas');
+const ctx = canvas.getContext('2d', { alpha: true });
+const maskCanvas = document.createElement('canvas'); // offscreen mask
+const maskCtx = maskCanvas.getContext('2d');
+
+const preview = document.getElementById('preview');
+const previewTitle = document.getElementById('previewTitle');
+const previewMeta = document.getElementById('previewMeta');
+const previewText = document.getElementById('previewText');
+const closePreviewBtn = document.getElementById('closePreview');
+const highlightNeighborsBtn = document.getElementById('highlightNeighbors');
+const regenBtn = document.getElementById('regen');
+const toggleLinesBtn = document.getElementById('toggleLines');
+const toggleTwinkleBtn = document.getElementById('toggleTwinkle');
+const toggleBgTextBtn = document.getElementById('toggleBgText');
+const starListEl = document.getElementById('starList');
+
+let DPR = Math.max(1, window.devicePixelRatio || 1);
+let width = 0, height = 0;
+let stars = [], grid = null;
+let frameCount = 0;
+
+/* VIEW: world-to-screen transform */
+const view = { scale: 1.0, cx: 0, cy: 0, tx: 0, ty: 0 };
+let mouse = { x: 0, y: 0, isDown:false, lastX:0, lastY:0 };
+let pinch = { active:false, startDist:0, startScale:1, centerX:0, centerY:0 };
+
+/* ---------- Helpers ---------- */
+function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+function debounce(fn, ms){
+  let t = null;
+  return (...args)=>{ clearTimeout(t); t = setTimeout(()=>fn(...args), ms); };
+}
+const recreateSkyDebounced = debounce(()=>{ drawTextMask(); initStars(); }, 140);
+
+/* ---------- Resize & Mask drawing ---------- */
+function resize(){
+  const rect = canvas.getBoundingClientRect();
+  width = rect.width; height = rect.height;
+  DPR = Math.max(1, window.devicePixelRatio || 1);
+  canvas.width = Math.floor(width * DPR);
+  canvas.height = Math.floor(height * DPR);
+  canvas.style.width = width + 'px';
+  canvas.style.height = height + 'px';
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+
+  maskCanvas.width = Math.floor(width);
+  maskCanvas.height = Math.floor(height);
+
+  if(!view.cx && !view.cy){ view.cx = maskCanvas.width/2; view.cy = maskCanvas.height/2; }
+
+  drawTextMask();
+}
+
+/* draw text mask robustly (stroke+fill, scale with view) */
+function drawTextMask(customSize){
+  maskCtx.clearRect(0,0,maskCanvas.width, maskCanvas.height);
+
+  const base = customSize || Math.floor(maskCanvas.height * 0.2);
+  const scaleClamp = Math.min(Math.max(view.scale, 0.2), 4);
+  const size = Math.max(28, Math.floor(base * scaleClamp));
+
+  maskCtx.save();
+  maskCtx.fillStyle = 'white';
+  maskCtx.strokeStyle = 'white';
+  maskCtx.lineJoin = 'round';
+  maskCtx.lineWidth = Math.max(2, Math.floor(size * 0.08));
+  maskCtx.font = `bold ${size}px Inter, system-ui, -apple-system, Roboto, Arial`;
+  maskCtx.textAlign = 'center';
+  maskCtx.textBaseline = 'middle';
+  const x = maskCanvas.width/2;
+  const y = maskCanvas.height/2 + maskCanvas.height * 0.02;
+
+  maskCtx.strokeText(CONSTELLATION_TEXT, x, y);
+  maskCtx.fillText(CONSTELLATION_TEXT, x, y);
+  maskCtx.restore();
+}
+
+/* adaptive sampler: smaller step when zoomed in, lower alpha threshold */
+function sampleMaskPositions(step = 2){
+  const positions = [];
+  const w = maskCanvas.width, h = maskCanvas.height;
+  if(w === 0 || h === 0) return positions;
+  const img = maskCtx.getImageData(0,0,w,h).data;
+
+  const adaptiveStep = Math.max(1, Math.floor(step / Math.max(0.5, view.scale)));
+  const alphaThreshold = 80;
+
+  for(let y = 0; y < h; y += adaptiveStep){
+    for(let x = 0; x < w; x += adaptiveStep){
+      const idx = (y * w + x) * 4 + 3;
+      const a = img[idx];
+      if(a > alphaThreshold){
+        positions.push({ x: x + Math.random()*adaptiveStep, y: y + Math.random()*adaptiveStep });
+      }
+    }
+  }
+  return positions;
+}
+
+/* ---------- Spatial grid & star setup (duplication strategy) ---------- */
+function buildGrid(cellSize = 60){
+  const cols = Math.ceil(maskCanvas.width / cellSize);
+  const rows = Math.ceil(maskCanvas.height / cellSize);
+  const cells = new Array(cols * rows);
+  for(let i=0;i<cells.length;i++) cells[i] = [];
+  const hash = (x,y) => Math.floor(x / cellSize) + Math.floor(y / cellSize) * cols;
+  stars.forEach((s, i) => {
+    const c = hash(s.x, s.y);
+    if(c >= 0 && c < cells.length) cells[c].push(i);
+  });
+  grid = {cells, cols, rows, cellSize, hash};
+}
+
+/*
+ Strategy:
+ 1) sample up to BASE_UNIQUE unique candidate points inside the mask
+ 2) if fewer than BASE_UNIQUE found, enlarge mask or duplicate jitter to reach base count
+ 3) create NUM_STARS by repeating (duplicating) the base points with small jitter
+*/
+function initStars(){
+  stars = [];
+
+  // 1) sample candidates
+  let candidates = sampleMaskPositions(2);
+
+  if(candidates.length < Math.min(BASE_UNIQUE, 200)){
+    // fallback: redraw mask slightly larger then resample
+    drawTextMask(Math.floor(maskCanvas.height * 0.72));
+    candidates = sampleMaskPositions(2);
+  }
+
+  if(candidates.length === 0){
+    // worst-case fallback grid
+    for(let y=8;y<maskCanvas.height-8;y+=6) for(let x=8;x<maskCanvas.width-8;x+=6) candidates.push({x,y});
+  }
+
+  // 2) pick up to BASE_UNIQUE unique positions (shuffle first)
+  for(let i=candidates.length-1;i>0;i--){ const j = Math.floor(Math.random()*(i+1)); [candidates[i], candidates[j]] = [candidates[j], candidates[i]]; }
+  let basePositions = candidates.slice(0, Math.min(BASE_UNIQUE, candidates.length));
+
+  // if still less than BASE_UNIQUE, duplicate with jitter to reach the base amount
+  if(basePositions.length < BASE_UNIQUE && basePositions.length > 0){
+    const orig = basePositions.slice();
+    let idx = 0;
+    while(basePositions.length < BASE_UNIQUE){
+      const p = orig[idx % orig.length];
+      basePositions.push({ x: p.x + (Math.random()-0.5)*3, y: p.y + (Math.random()-0.5)*3 });
+      idx++;
+      if(idx > orig.length * 8) break;
+    }
+  }
+
+  // final safety: if still empty, create a loose grid
+  if(basePositions.length === 0){
+    for(let y=20;y<maskCanvas.height-20;y+=10) for(let x=20;x<maskCanvas.width-20;x+=10) basePositions.push({x,y});
+  }
+
+  // 3) duplicate base positions to reach NUM_STARS
+  for(let i=0;i<NUM_STARS;i++){
+    const base = basePositions[i % basePositions.length];
+    // jitter scale increases slightly with repetition index to avoid perfect stacking
+    const jitter = 0.6 + ( (i % basePositions.length) / basePositions.length ) * 1.2;
+    const sx = base.x + (Math.random()-0.5) * jitter;
+    const sy = base.y + (Math.random()-0.5) * jitter;
+    const meta = (Math.random() < 0.12) ? WORD_STARS[Math.floor(Math.random()*WORD_STARS.length)] : null;
+    const size = 0.8 + Math.random()*1.6;
+    stars.push({
+      id: i+1,
+      x: sx, y: sy,
+      ox: sx, oy: sy,
+      vx: (Math.random()-0.5)*0.12, vy: (Math.random()-0.5)*0.12,
+      size, baseAlpha: 0.35 + Math.random()*0.9, twinklePhase: Math.random()*Math.PI*2,
+      meta, highlighted:false
+    });
+  }
+
+  // build grid and accessible list
+  buildGrid(60);
+  populateStarList();
+}
+
+function populateStarList(){
+  starListEl.innerHTML = '';
+  const notable = stars.filter(s => s.meta).slice(0,80);
+  notable.forEach(s => {
+    const item = document.createElement('div');
+    item.className = 'star-item';
+    item.tabIndex = 0;
+    item.setAttribute('role','button');
+    item.innerHTML = `<div><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:linear-gradient(180deg,#ff9bb3,#ffd7e6);margin-right:8px"></span><strong>${s.meta.label}</strong><div style="font-size:12px;color:rgba(191,216,238,0.8)">${s.meta.text}</div></div><div style="font-size:12px;color:rgba(188,211,230,0.6)">${s.id}</div>`;
+    item.addEventListener('click', ()=> openPreview(s));
+    item.addEventListener('keydown', e => { if(e.key === 'Enter') openPreview(s); });
+    starListEl.appendChild(item);
+  });
+}
+
+/* ---------- Transforms ---------- */
+function worldToScreen(wx, wy){
+  const sx = (wx - view.cx) * view.scale + width/2 + view.tx;
+  const sy = (wy - view.cy) * view.scale + height/2 + view.ty;
+  return { x: sx, y: sy };
+}
+function screenToWorld(sx, sy){
+  const wx = view.cx + (sx - width/2 - view.tx) / view.scale;
+  const wy = view.cy + (sy - height/2 - view.ty) / view.scale;
+  return { x: wx, y: wy };
+}
+
+/* ---------- Render loop ---------- */
+let time = 0;
+function render(){
+  ctx.clearRect(0,0,width,height);
+  const px = (mouse.x/width - 0.5) * 8; const py = (mouse.y/height - 0.5) * 6;
+
+  if(SHOW_BG_TEXT){
+    ctx.save();
+    ctx.globalAlpha = 0.03;
+    ctx.fillStyle = 'white';
+    const bgFontSize = Math.max(24, Math.floor(maskCanvas.height * 0.5 * Math.min(Math.max(view.scale, 0.5), 4)));
+    ctx.font = `${bgFontSize}px Inter, system-ui, Roboto, Arial`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    const center = worldToScreen(maskCanvas.width/2, maskCanvas.height/2);
+    ctx.fillText(CONSTELLATION_TEXT, center.x + px*0.15, center.y + py*0.06);
+    ctx.restore();
+  }
+
+  // update star physics
+  time += 0.016;
+  for(let i=0;i<stars.length;i++){
+    const s = stars[i];
+    s.twinklePhase += 0.03 + Math.random()*0.03;
+    s.vx += (Math.random()-0.5) * 0.02;
+    s.vy += (Math.random()-0.5) * 0.02;
+    const ax = (s.ox - s.x) * 0.004; const ay = (s.oy - s.y) * 0.004;
+    s.vx += ax; s.vy += ay;
+    s.x += s.vx; s.y += s.vy;
+    s.vx *= 0.98; s.vy *= 0.98;
+    const scr = worldToScreen(s.x, s.y);
+    s.drawX = scr.x; s.drawY = scr.y;
+  }
+
+  // draw connections
+  if(DRAW_CONNECTIONS && grid){
+    ctx.save();
+    ctx.lineWidth = 0.6;
+    const threshold = 42 * view.scale;
+    const cols = grid.cols, rows = grid.rows;
+    for(let cx=0; cx<cols; cx++){
+      for(let cy=0; cy<rows; cy++){
+        const idx = cx + cy * cols; const cell = grid.cells[idx];
+        if(!cell || cell.length===0) continue;
+        const neighborOffsets = [[0,0],[1,0],[0,1],[1,1],[-1,1]];
+        for(const off of neighborOffsets){
+          const nx = cx + off[0], ny = cy + off[1];
+          if(nx<0||ny<0||nx>=cols||ny>=rows) continue;
+          const other = grid.cells[nx + ny * cols]; if(!other || other.length===0) continue;
+          for(const i of cell){
+            const a = stars[i];
+            for(const j of other){
+              if(i>=j) continue;
+              const b = stars[j];
+              const dx = a.drawX - b.drawX; const dy = a.drawY - b.drawY;
+              const d2 = dx*dx + dy*dy;
+              if(d2 < threshold*threshold){
+                const alpha = 0.055 * (1 - d2 / (threshold*threshold));
+                ctx.strokeStyle = 'rgba(200,220,240,' + alpha + ')';
+                ctx.beginPath(); ctx.moveTo(a.drawX, a.drawY); ctx.lineTo(b.drawX, b.drawY); ctx.stroke();
+              }
+            }
+          }
+        }
+      }
+    }
+    ctx.restore();
+  }
+
+  // draw stars
+  for(const s of stars){
+    const tw = ENABLE_TWINKLE ? (0.5 + Math.sin(s.twinklePhase) * 0.5) : 1;
+    const a = s.baseAlpha * tw;
+    const r = s.size * Math.max(0.6, view.scale);
+    const gx = ctx.createRadialGradient(s.drawX, s.drawY, r*0.1, s.drawX, s.drawY, r*3);
+    gx.addColorStop(0, `rgba(255,255,255,${0.95 * a})`);
+    gx.addColorStop(0.3, `rgba(255,200,230,${0.65 * a})`);
+    gx.addColorStop(1, `rgba(120,150,180,${0.05 * a})`);
+    ctx.fillStyle = gx; ctx.beginPath(); ctx.arc(s.drawX, s.drawY, r, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.fillStyle = `rgba(255,255,255,${0.7*a})`; ctx.arc(s.drawX, s.drawY, Math.max(0.5, r*0.35), 0, Math.PI*2); ctx.fill();
+    if(s.highlighted){
+      ctx.beginPath(); ctx.strokeStyle = 'rgba(255,155,179,0.16)'; ctx.lineWidth = 2; ctx.arc(s.drawX, s.drawY, r*2.8, 0, Math.PI*2); ctx.stroke();
+    }
+  }
+
+  // rebuild grid occupancy occasionally
+  if((frameCount & 15) === 0 && grid){
+    for(let i=0;i<grid.cells.length;i++) grid.cells[i].length = 0;
+    for(let i=0;i<stars.length;i++){
+      const s = stars[i];
+      const cx = Math.floor(s.x / grid.cellSize);
+      const cy = Math.floor(s.y / grid.cellSize);
+      const cidx = cx + cy * grid.cols;
+      if(cidx >= 0 && cidx < grid.cells.length) grid.cells[cidx].push(i);
+    }
+  }
+
+  frameCount++; requestAnimationFrame(render);
+}
+
+/* ---------- Interaction & selection ---------- */
+function findNearestStarScreen(sx, sy, maxDist = 28){
+  const wpt = screenToWorld(sx, sy);
+  const wx = wpt.x, wy = wpt.y;
+  const cellSize = grid.cellSize, cols = grid.cols;
+  const cx = Math.floor(wx / cellSize), cy = Math.floor(wy / cellSize);
+  let best = null, bestDist2 = (maxDist / Math.max(0.001, view.scale))**2;
+  for(let dx=-1; dx<=1; dx++){
+    for(let dy=-1; dy<=1; dy++){
+      const nx = cx + dx, ny = cy + dy;
+      if(nx < 0 || ny < 0 || nx >= grid.cols || ny >= grid.rows) continue;
+      const cell = grid.cells[nx + ny * cols];
+      if(!cell) continue;
+      for(const idx of cell){
+        const s = stars[idx];
+        const dx2 = s.x - wx, dy2 = s.y - wy;
+        const d2 = dx2*dx2 + dy2*dy2;
+        if(d2 < bestDist2){ bestDist2 = d2; best = s; }
+      }
+    }
+  }
+  return best;
+}
+
+function openPreview(star){
+  stars.forEach(s=>s.highlighted=false);
+  star.highlighted = true;
+  previewTitle.textContent = star.meta ? (star.meta.label + ' • Star ' + star.id) : ('Star ' + star.id);
+  previewMeta.textContent = `x:${Math.round(star.x)} y:${Math.round(star.y)} • size:${star.size.toFixed(2)}`;
+  previewText.textContent = star.meta ? star.meta.text : `A silent star in our love constellation. ID ${star.id}`;
+  preview.classList.add('open'); preview.setAttribute('aria-hidden','false');
+  const scr = worldToScreen(star.x, star.y);
+  preview.style.left = Math.min(Math.max(12, scr.x + 14), width - 340) + 'px';
+  preview.style.top = Math.min(Math.max(12, scr.y - 20), height - 140) + 'px';
+}
+
+/* pointer / pan */
+canvas.addEventListener('mousedown', e=>{
+  e.preventDefault();
+  mouse.isDown = true; mouse.lastX = e.clientX; mouse.lastY = e.clientY;
+});
+window.addEventListener('mousemove', e=>{
+  if(mouse.isDown){
+    const dx = e.clientX - mouse.lastX, dy = e.clientY - mouse.lastY;
+    mouse.lastX = e.clientX; mouse.lastY = e.clientY;
+    view.tx += dx; view.ty += dy;
+  }
+  const rect = canvas.getBoundingClientRect();
+  mouse.x = e.clientX - rect.left; mouse.y = e.clientY - rect.top;
+});
+window.addEventListener('mouseup', ()=>{ mouse.isDown = false; });
+
+/* wheel zoom (cursor-centered) */
+canvas.addEventListener('wheel', e=>{
+  e.preventDefault();
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+  const before = screenToWorld(mx, my);
+  const delta = -e.deltaY * (e.deltaMode === 1 ? 0.06 : 0.0018);
+  const factor = 1 + delta;
+  const newScale = clamp(view.scale * factor, 0.24, 3.8);
+  view.scale = newScale;
+  view.cx = before.x - (mx - width/2 - view.tx) / view.scale;
+  view.cy = before.y - (my - height/2 - view.ty) / view.scale;
+
+  recreateSkyDebounced();
+});
+
+/* double-click reset */
+canvas.addEventListener('dblclick', e=>{
+  view.scale = 1.0; view.tx = 0; view.ty = 0; view.cx = maskCanvas.width/2; view.cy = maskCanvas.height/2;
+  recreateSky();
+});
+
+/* touch pinch & pan */
+canvas.addEventListener('touchstart', e=>{
+  if(e.touches.length === 1){
+    const t = e.touches[0];
+    mouse.isDown = true; mouse.lastX = t.clientX; mouse.lastY = t.clientY;
+  } else if(e.touches.length === 2){
+    e.preventDefault();
+    pinch.active = true;
+    const t0 = e.touches[0], t1 = e.touches[1];
+    pinch.startDist = Math.hypot(t1.clientX - t0.clientX, t1.clientY - t0.clientY);
+    pinch.startScale = view.scale;
+    pinch.centerX = (t0.clientX + t1.clientX)/2; pinch.centerY = (t0.clientY + t1.clientY)/2;
+  }
+});
+canvas.addEventListener('touchmove', e=>{
+  if(pinch.active && e.touches.length === 2){
+    e.preventDefault();
+    const t0 = e.touches[0], t1 = e.touches[1];
+    const dist = Math.hypot(t1.clientX - t0.clientX, t1.clientY - t0.clientY);
+    const factor = dist / pinch.startDist;
+    const newScale = clamp(pinch.startScale * factor, 0.35, 3.8);
+    const rect = canvas.getBoundingClientRect();
+    const mx = pinch.centerX - rect.left, my = pinch.centerY - rect.top;
+    const before = screenToWorld(mx, my);
+    view.scale = newScale;
+    view.cx = before.x - (mx - width/2 - view.tx) / view.scale;
+    view.cy = before.y - (my - height/2 - view.ty) / view.scale;
+
+    recreateSkyDebounced();
+  } else if(mouse.isDown && e.touches.length === 1){
+    const t = e.touches[0];
+    const dx = t.clientX - mouse.lastX, dy = t.clientY - mouse.lastY;
+    mouse.lastX = t.clientX; mouse.lastY = t.clientY;
+    view.tx += dx; view.ty += dy;
+  }
+});
+canvas.addEventListener('touchend', e=>{
+  if(e.touches.length < 2) pinch.active = false;
+  if(e.touches.length === 0) mouse.isDown = false;
+});
+
+/* click to pick star */
+canvas.addEventListener('click', e=>{
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+  const s = findNearestStarScreen(mx, my, 28);
+  if(s) openPreview(s);
+});
+
+/* preview controls */
+closePreviewBtn.addEventListener('click', ()=>{ preview.classList.remove('open'); preview.setAttribute('aria-hidden','true'); stars.forEach(s=>s.highlighted=false); });
+highlightNeighborsBtn.addEventListener('click', ()=> {
+  const title = previewTitle.textContent; const m = title.match(/Star (\d+)/);
+  if(!m) return; const id = Number(m[1]); const center = stars.find(s=>s.id===id); if(!center) return;
+  const nd = 60; stars.forEach(s => s.highlighted = (Math.hypot(center.x - s.x, center.y - s.y) < nd));
+});
+
+/* toggles */
+regenBtn.addEventListener('click', ()=>{ recreateSky(); });
+toggleLinesBtn.addEventListener('click', ()=>{ DRAW_CONNECTIONS = !DRAW_CONNECTIONS; });
+toggleTwinkleBtn.addEventListener('click', ()=>{ ENABLE_TWINKLE = !ENABLE_TWINKLE; });
+toggleBgTextBtn.addEventListener('click', ()=>{ SHOW_BG_TEXT = !SHOW_BG_TEXT; toggleBgTextBtn.textContent = SHOW_BG_TEXT ? 'Toggle Background Text' : 'Background Text Off'; });
+
+/* ---------- Recreate & start ---------- */
+function recreateSky(){
+  drawTextMask();
+  initStars();
+}
+
+function start(){
+  resize();
+  recreateSky();
+  requestAnimationFrame(render);
+}
+window.addEventListener('resize', ()=>{ resize(); recreateSky(); });
+window.addEventListener('orientationchange', ()=>{ setTimeout(()=>{ resize(); recreateSky(); }, 300); });
+
+/* accessibility */
+window.addEventListener('keydown', e=>{ if(e.key==='Escape'){ preview.classList.remove('open'); preview.setAttribute('aria-hidden','true'); stars.forEach(s=>s.highlighted=false); } });
+canvas.addEventListener('mousemove', e=>{ const rect = canvas.getBoundingClientRect(); mouse.x = e.clientX - rect.left; mouse.y = e.clientY - rect.top; });
+
+/* dev API */
+window.__sky = { getStars: ()=>stars, recreateSky, setPhrase: (t)=>{ CONSTELLATION_TEXT = t; drawTextMask(); recreateSky(); } };
+
+/* kick-off */
+setTimeout(()=>{ drawTextMask(); }, 200);
+start();
+
+</script>
+</body>
+</html>
