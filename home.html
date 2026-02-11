@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Our Love Timeline - Alishba</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Playfair+Display:wght@400;600&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --bg1: #050007;
+    --bg2: #0f0020;
+    --accentA: #ff4f9a;
+    --accentB: #ff9ecf;
+    --muted: rgba(255,255,255,0.72);
+    --glass-blur: 14px;
+    --maxWidth: 980px;
+    --panelWidth: min(1100px, 94%);
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{
+    height:100%;
+    background:linear-gradient(180deg,var(--bg1),var(--bg2));
+    font-family:'Inter',sans-serif;
+    color:#fff;
+    overflow:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+  button{cursor:pointer;font-family:inherit}
+
+  /* background glows / film bars */
+  .layer{position:fixed;inset:0;pointer-events:none;z-index:0;background:
+      radial-gradient(circle at 10% 30%, rgba(255,80,140,0.12), transparent 12%),
+      radial-gradient(circle at 85% 70%, rgba(255,140,190,0.10), transparent 18%);filter:blur(44px);transform:translateZ(0);}
+  .bar-top, .bar-bottom{position:fixed;left:0;right:0;height:5.5vh;background:linear-gradient(rgba(0,0,0,0.6), transparent);z-index:60;pointer-events:none}
+  .bar-bottom{bottom:0;background:linear-gradient(transparent, rgba(0,0,0,0.6))}
+  .grain{position:fixed;inset:0;z-index:59;opacity:.04;pointer-events:none;background-image:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='f'><feTurbulence baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect filter='url(%23f)' width='100%' height='100%' fill='white'/></svg>");background-size:300px 300px;}
+
+  /* stage */
+  .stage{position:relative;z-index:5;height:100vh;display:flex;align-items:center;justify-content:center;padding:36px;overflow:hidden}
+
+  /* panel base - absolute centered so only one visible at a time */
+  .panel{
+    position:absolute;
+    top:50%;
+    left:50%;
+    transform:translate(-50%,-50%);
+    width:var(--panelWidth);
+    max-width:var(--maxWidth);
+    z-index:10;
+    transition:opacity .45s ease;
+  }
+
+  /* Intro panel */
+  .intro{
+    border-radius:16px;padding:38px 44px;background:linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));box-shadow:0 30px 90px rgba(0,0,0,0.6);backdrop-filter:blur(var(--glass-blur));border:1px solid rgba(255,255,255,0.03);display:flex;gap:26px;align-items:center;color:var(--muted)
+  }
+  .intro-left{flex:1}
+  .intro h1{
+    font-family:'Playfair Display',serif;
+    font-size:36px;
+    color:var(--accentB);
+    letter-spacing:0.6px;
+    margin-bottom:6px;
+    text-transform:uppercase;        /* CAPITAL letters */
+  }
+  .intro p.lead{font-size:16px;line-height:1.8;color:var(--muted);max-width:680px}
+  .actions{margin-top:22px;display:flex;gap:14px;align-items:center}
+  .btn-primary{background:linear-gradient(90deg,var(--accentA),var(--accentB));border:0;padding:12px 28px;border-radius:999px;color:#120013;font-weight:700;box-shadow:0 18px 40px rgba(255,80,140,0.12)}
+  .btn-ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);padding:10px 18px;border-radius:10px;color:var(--muted)}
+
+  /* timeline panel */
+  .timeline-wrap{
+    display:none;
+    position:absolute;
+    top:50%;
+    left:50%;
+    transform:translate(-50%,-50%);
+    width:var(--panelWidth);
+    max-width:var(--maxWidth);
+    height:86vh;
+    border-radius:14px;
+    padding:28px;
+    background:linear-gradient(180deg, rgba(10,6,18,0.55), rgba(10,6,18,0.45));
+    box-shadow:0 40px 120px rgba(0,0,0,0.7);
+    overflow:auto;
+    border:1px solid rgba(255,255,255,0.03);
+    z-index:20;
+  }
+  .timeline{width:100%;max-width:var(--maxWidth);margin:0 auto;padding:48px 16px;position:relative}
+  .timeline::before{content:"";position:absolute;left:50%;top:20px;bottom:20px;width:4px;background:linear-gradient(180deg,var(--accentA),var(--accentB));transform:translateX(-50%);filter:blur(6px);opacity:.9;border-radius:4px;box-shadow:0 0 40px rgba(255,80,140,0.12)}
+
+  /* entry - extra top padding so marker never overlaps meta */
+  .entry{position:relative;width:50%;padding:44px 28px 28px;opacity:0;transform:translateY(28px) scale(.995);transition:transform .9s cubic-bezier(.2,.9,.25,1), opacity .9s}
+  .entry.left{left:0;float:left;text-align:right}
+  .entry.right{left:50%;float:right;text-align:left}
+  .entry.show{opacity:1;transform:translateY(0) scale(1)}
+  .card-inner{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:24px;border-radius:12px;border:1px solid rgba(255,255,255,0.03);box-shadow:0 14px 50px rgba(0,0,0,0.6);max-width:520px; margin:0 auto;}
+  .meta{
+    font-family:'Playfair Display',serif;
+    color:var(--accentB);
+    font-size:15px;             /* slightly smaller so long headings fit */
+    margin-bottom:8px;
+    text-transform:uppercase;   /* CAPITAL letters */
+    line-height:1.2;
+    white-space:normal;         /* allow wrapping */
+    overflow-wrap:break-word;
+    word-break:break-word;
+    letter-spacing:0.6px;
+    text-align:inherit;
+  }
+  .desc{font-size:16px;line-height:1.95;color:rgba(255,255,255,0.92);white-space:normal}
+
+  /* marker moved up so it doesn't overlap meta */
+  .entry::after{content:"";position:absolute;left:50%;top:10px;transform:translateX(-50%);width:14px;height:14px;border-radius:50%;background:linear-gradient(90deg,var(--accentA),var(--accentB));box-shadow:0 10px 36px rgba(255,80,140,0.18);animation:marker 2.6s infinite}
+  @keyframes marker{0%{transform:translateX(-50%) scale(.95)}50%{transform:translateX(-50%) scale(1.12)}100%{transform:translateX(-50%) scale(.95)}}
+
+  .typewriter{display:inline-block;white-space:nowrap;overflow:hidden;border-right:2px solid rgba(255,255,255,0.12);animation:typer 6s steps(80,end) 1}
+  @keyframes typer{from{width:0} to{width:100%}}
+
+  /* final panel */
+  .final{
+    display:none;
+    position:absolute;
+    top:50%;
+    left:50%;
+    transform:translate(-50%,-50%);
+    width:var(--panelWidth);
+    max-width:var(--maxWidth);
+    height:86vh;
+    border-radius:14px;
+    padding:40px;
+    background:linear-gradient(180deg,rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    box-shadow:0 40px 110px rgba(0,0,0,0.6);
+    backdrop-filter:blur(8px);
+    text-align:center;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-direction:column;
+    gap:18px;
+    z-index:30;
+  }
+  .final .line{
+    font-family:'Playfair Display',serif;
+    font-size:42px;
+    background:linear-gradient(90deg,var(--accentA),var(--accentB));
+    -webkit-background-clip:text;
+    -webkit-text-fill-color:transparent;
+    filter:drop-shadow(0 24px 44px rgba(255,80,140,0.12));
+    text-transform:uppercase;   /* CAPITAL letters */
+  }
+  .final .sub{color:var(--muted);max-width:760px;line-height:1.8;text-transform:uppercase}
+
+  /* Continue button (only shown when timeline finishes) */
+  .continue-bar{display:none;position:fixed;left:50%;transform:translateX(-50%);bottom:32px;z-index:80}
+  .continue-btn{background:linear-gradient(90deg,var(--accentA),var(--accentB));padding:12px 26px;border-radius:12px;border:0;color:#120013;font-weight:700;box-shadow:0 16px 40px rgba(255,80,140,0.12)}
+
+  .particle{position:fixed;z-index:3;pointer-events:none;color:rgba(255,150,210,0.06);font-size:18px;transform:translateY(0) translateX(0);opacity:0;animation:rise 9s linear infinite}
+  @keyframes rise{0%{opacity:0;transform:translateY(30px) scale(.92)}10%{opacity:.6}100%{opacity:0;transform:translateY(-110vh) scale(1.06)}}
+
+  @media (max-width:900px){
+    .entry{width:100%;left:0;float:none;text-align:left;padding-left:22px;padding-right:22px}
+    .timeline::before{left:28px}
+    .entry::after{left:28px;top:8px}
+    .intro{flex-direction:column;align-items:flex-start}
+    .continue-bar{bottom:16px}
+    .card-inner{max-width:100%}
+  }
+</style>
+</head>
+<body>
+
+<div class="layer" id="layer"></div>
+<div class="grain" aria-hidden="true"></div>
+<div class="bar-top"></div>
+<div class="bar-bottom"></div>
+
+<div class="stage">
+
+  <!-- INTRO (centered panel) -->
+  <div class="panel intro" id="intro">
+    <div class="intro-left">
+      <h1>OUR TIMELINE OF WHAT MATTERS</h1>
+      <p class="lead">A cinematic, slow-reveal journey - text only. Click Begin to start the timeline. Music will start with your click.</p>
+
+      <div class="actions">
+        <button class="btn-primary" id="beginBtn">Begin the Journey</button>
+        <button class="btn-ghost" id="skipPreview">Preview</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TIMELINE (centered panel) -->
+  <div class="timeline-wrap panel" id="timelineWrap" aria-hidden="true">
+    <div class="timeline" id="timeline">
+
+      <!-- E1 -->
+      <div class="entry left" id="e1">
+        <div class="card-inner">
+          <div class="meta">THE DAY I FIRST NOTICED YOU - QUAID-E-AWAM UNIVERSITY (AI DEPT.)</div>
+          <div class="desc">
+            I first saw you at Quaid-e-Awam University, Nawabshah - inside the Artificial Intelligence department. I was a senior and you were a junior in Batch 24 while I was Batch 21. You wore a white abaya with tiny black dots and a hijab. I froze; for an instant the world narrowed to one person. We didn’t speak that day, but it felt like we already knew each other.
+          </div>
+        </div>
+      </div>
+
+      <!-- E2 -->
+      <div class="entry right" id="e2">
+        <div class="card-inner">
+          <div class="meta">THE MOMENT I KNEW - FIRST FACE TO FACE</div>
+          <div class="desc">
+            When we finally met face to face, I had a sudden certainty - a quiet, deep knowing that I wanted to spend my life with you. There were no grand words. You passed by silently, and I kept looking after you; that day became the most special of my life.
+          </div>
+        </div>
+      </div>
+
+      <!-- E3 -->
+      <div class="entry left" id="e3">
+        <div class="card-inner">
+          <div class="meta">THIRTY SECONDS THAT MATERED - OUR FIRST MEETING</div>
+          <div class="desc">
+            Our first proper meeting was only thirty seconds long. We simply looked at each other and smiled. That small moment echoed in my mind many times after.
+          </div>
+        </div>
+      </div>
+
+      <!-- E4 -->
+      <div class="entry right" id="e4">
+        <div class="card-inner">
+          <div class="meta">SMALL FIGHTS - LEARNING HOW TO RETURN</div>
+          <div class="desc">
+            We had little quarrels - brief moments of stubbornness. Those tiny storms clarified our bond; they taught us how to return to one another, softer and more certain.
+          </div>
+        </div>
+      </div>
+
+      <!-- E5 -->
+      <div class="entry left" id="e5">
+        <div class="card-inner">
+          <div class="meta">THE TURNING POINT - WHEN YOU SAID "END"</div>
+          <div class="desc">
+            After our third meeting, a terrible argument left you saying you wanted to end things. Those words shook me deeply. Later you messaged that you wanted to stay. I felt relief and a deeper love - that fight changed everything and brought us closer.
+          </div>
+        </div>
+      </div>
+
+      <!-- E6 -->
+      <div class="entry right" id="e6">
+        <div class="card-inner">
+          <div class="meta">THE VOW - THE DAY I DECIDED TO CHANGE</div>
+          <div class="desc">
+            After that fight I made a quiet vow: I would never cause you pain. I began changing things - I even quit smoking - because I wanted to be the man you deserve. Loving you became choosing what is best for you.
+          </div>
+        </div>
+      </div>
+
+      <!-- E7 -->
+      <div class="entry left" id="e7">
+        <div class="card-inner">
+          <div class="meta">THE PROPOSAL VISION - THE QUESTION THAT OPENED A DOOR</div>
+          <div class="desc">
+            You once asked me if I liked you - that gentle, decisive moment felt like a proposal in itself. I imagine a quiet, private proposal someday - sincere, true, the day you smile and say yes.
+          </div>
+        </div>
+      </div>
+
+      <!-- E8 -->
+      <div class="entry right" id="e8">
+        <div class="card-inner">
+          <div class="meta">THE FUTURE I SEE - YEARS & OUR DREAMS</div>
+          <div class="desc">
+            A gentle timeline in my heart: marriage by 2027, our first child in 2028-2029, and settling into a loving home by 2030-2035. Two children - a daughter first, then a son. I don't need a grand house; I only want a modest home filled with warmth and laughter - Nawabshah, Karachi, or a peaceful small town.
+          </div>
+        </div>
+      </div>
+
+      <!-- E9 -->
+      <div class="entry left" id="e9">
+        <div class="card-inner">
+          <div class="meta">ONE PROMISE</div>
+          <div class="desc">
+            Whatever the years bring - small joys or big storms - my one constant will be you. I will choose you again and again. I will build the life that honors you.
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- FINAL (centered panel) -->
+  <div class="final panel" id="finalPanel" aria-hidden="true">
+    <div class="line">EVERY CHAPTER HAD ONE CONSTANT - YOU</div>
+    <div class="sub">WILL YOU WALK THIS FUTURE WITH ME?</div>
+    <div style="margin-top:14px">
+      <button class="btn-ghost" id="returnBtn">Return</button>
+      <button class="btn-primary" id="saveBtn">Save Keepsake</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- Continue button (hidden until timeline ends) -->
+<div class="continue-bar" id="continueBar">
+  <button class="continue-btn" id="continueBtn">Continue</button>
+</div>
+
+<div id="particles" aria-hidden="true"></div>
+<audio id="bgMusic" src="music.mp3" preload="auto"></audio>
+
+<script>
+  const beginBtn = document.getElementById('beginBtn');
+  const skipPreview = document.getElementById('skipPreview');
+  const intro = document.getElementById('intro');
+  const timelineWrap = document.getElementById('timelineWrap');
+  const timeline = document.getElementById('timeline');
+  const entries = Array.from(document.querySelectorAll('.entry'));
+  const bgMusic = document.getElementById('bgMusic');
+  const finalPanel = document.getElementById('finalPanel');
+  const returnBtn = document.getElementById('returnBtn');
+  const saveBtn = document.getElementById('saveBtn');
+  const layer = document.getElementById('layer');
+  const continueBar = document.getElementById('continueBar');
+  const continueBtn = document.getElementById('continueBtn');
+
+  // SETTINGS
+  const ENTRY_INTERVAL_MS = 15000; // 15 seconds per timeline entry
+  let timers = []; // store timeouts to clear if user cancels
+
+  function clearAllTimers(){
+    timers.forEach(t => clearTimeout(t));
+    timers = [];
+  }
+
+  // parallax
+  document.addEventListener('mousemove', (e)=>{
+    const x = (e.clientX / window.innerWidth) - 0.5;
+    const y = (e.clientY / window.innerHeight) - 0.5;
+    layer.style.transform = `translate(${x * 12}px, ${y * 8}px)`;
+  });
+
+  function showContinueButton(){
+    continueBar.style.display = 'block';
+  }
+
+  function showFinalPanel(){
+    continueBar.style.display = 'none';
+    timelineWrap.style.display = 'none';
+    finalPanel.style.display = 'flex';
+    spawnParticles(10);
+  }
+
+  function beginTimeline(){
+    // reset
+    clearAllTimers();
+    entries.forEach(e => e.classList.remove('show'));
+    finalPanel.style.display = 'none';
+    continueBar.style.display = 'none';
+    timelineWrap.style.display = 'block';
+    intro.style.display = 'none';
+
+    // audio
+    bgMusic.currentTime = 0; bgMusic.volume = .85;
+    bgMusic.play().catch(()=>{/* if blocked */});
+
+    // schedule reveals at ENTRY_INTERVAL_MS spacing
+    entries.forEach((el, idx) => {
+      const t = setTimeout(()=> {
+        el.classList.add('show');
+        // scroll the timeline panel to center the entry
+        el.scrollIntoView({behavior:'smooth', block:'center'});
+
+        // last entry -> show Continue after small pause
+        if(idx === entries.length - 1){
+          const t2 = setTimeout(()=> {
+            showContinueButton();
+          }, 1200);
+          timers.push(t2);
+        }
+      }, idx * ENTRY_INTERVAL_MS);
+      timers.push(t);
+    });
+  }
+
+  beginBtn.addEventListener('click', beginTimeline);
+
+  // preview: quick show first 2 entries (no long timers)
+  skipPreview.addEventListener('click', ()=>{
+    clearAllTimers();
+    entries.forEach(e => e.classList.remove('show'));
+    intro.style.display='none';
+    finalPanel.style.display='none';
+    timelineWrap.style.display='block';
+    entries.slice(0,2).forEach((el,i)=> setTimeout(()=> { el.classList.add('show'); el.scrollIntoView({behavior:'smooth', block:'center'}); }, i*700));
+    setTimeout(()=> showContinueButton(), 1600);
+  });
+
+  // Continue shows final panel
+  continueBtn.addEventListener('click', showFinalPanel);
+
+  // Return / Reset
+  returnBtn.addEventListener('click', ()=>{
+    finalPanel.style.display = 'none';
+    timelineWrap.style.display = 'none';
+    intro.style.display = 'block';
+    entries.forEach(e=> e.classList.remove('show'));
+    continueBar.style.display = 'none';
+    clearAllTimers();
+    bgMusic.pause(); bgMusic.currentTime = 0;
+  });
+
+  // Save keepsake
+  saveBtn.addEventListener('click', ()=>{
+    const parts = Array.from(document.querySelectorAll('.meta, .desc')).map(n=>n.innerText.trim());
+    const txt = ['Our Love Timeline - Alishba','',...parts].join('\n\n');
+    const blob = new Blob([txt], {type:'text/plain;charset=utf-8'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'Love_Timeline_Alishba.txt'; document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  });
+
+  // particles for final
+  function spawnParticles(n){
+    for(let i=0;i<n;i++){
+      const p = document.createElement('div');
+      p.className='particle'; p.innerHTML='•';
+      p.style.left = (20 + Math.random()*60)+'%';
+      p.style.top = (70 + Math.random()*20)+'%';
+      p.style.fontSize = (10 + Math.random()*20) + 'px';
+      p.style.animationDelay = (Math.random()*2) + 's';
+      document.body.appendChild(p);
+      setTimeout(()=> p.remove(), 12000 + Math.random()*6000);
+    }
+  }
+
+  // stop typewriter caret after a while
+  window.setTimeout(()=> {
+    const t = document.querySelector('.typewriter');
+    if(t) { t.style.borderRight='0'; t.style.overflow='visible'; }
+  }, 7000);
+</script>
+</body>
+</html>
